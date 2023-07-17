@@ -1,0 +1,118 @@
+---
+- name: set diskspace fact
+  set_fact:
+    space_free_gb: "{{ (((ansible_mounts| selectattr('mount', 'equalto', '/')| list)[0].size_available)/1024/1024/1024) | round | int }}"
+
+- name: update all packages before upgrade
+  ansible.builtin.apt:
+    name: "*"
+    state: latest
+    update_cache: yes
+
+- name: get proxmox backup server version
+  ansible.builtin.command:
+    cmd: proxmox-backup-manager versions
+  register: pbs_version_info
+
+- name: create backup of configuration
+  community.general.archive:
+    path: /etc/proxmox-backup
+    dest: /var/backups/proxmox-backup-{{ ansible_date_time.date }}.tar.gz
+    mode: 600
+    format: gz
+
+- name: check that there is enough free space
+  ansible.builtin.fail:
+    msg: Stopping because there is not enough free space! There should be at least 5GB free of space.
+  when: space_free_gb > '5'
+
+#
+# TODO Datastore maintenance mode
+#
+# currently only one datastore is checked, we need to loop over all.
+- name: get datastores
+  ansible.builtin.command:
+    cmd: proxmox-backup-manager datastore list --output-format json
+  register: datastores
+
+- name: put datastores in readonly mode
+  ansible.builtin.command:
+    cmd: proxmox-backup-manager datastore update "{{ (datastores.stdout | from_json | first).name }}" --maintenance-mode read-only
+
+- name: set new sources.list
+  ansible.builtin.apt_repository:
+    repo: "{{ item.line }}"
+    state: "{{ item.state }}"
+
+    update_cache: false
+  loop:
+    - {
+        "line": "deb http://ftp.de.debian.org/debian bookworm main contrib",
+        "state": "present",
+      }
+    - {
+        "line": "deb http://ftp.de.debian.org/debian bookworm-updates main contrib",
+        "state": "present",
+      }
+    - {
+        "line": "deb http://security.debian.org bookworm-security main contrib",
+        "state": "present",
+      }
+    - {
+        "line": "deb http://download.proxmox.com/debian/pbs bookworm pbs-no-subscription",
+        "state": "present",
+      }
+    - {
+        "line": "deb http://ftp.de.debian.org/debian bullseye main contrib",
+        "state": "absent",
+      }
+    - {
+        "line": "deb http://ftp.de.debian.org/debian bullseye-updates main contrib",
+        "state": "absent",
+      }
+    - {
+        "line": "deb http://security.debian.org bullseye-security main contrib",
+        "state": "absent",
+      }
+    - {
+        "line": "deb http://download.proxmox.com/debian/pbs bullseye pbs-no-subscription",
+        "state": "absent",
+      }
+
+- name: set new pbs-enterprise sources, as i dont use them delete them.
+  ansible.builtin.apt_repository:
+    repo: "{{ item.line }}"
+    state: "{{ item.state }}"
+    filename: "{{ item.filename }}"
+    update_cache: false
+  loop:
+    - {
+        "filename": "pbs-enterprise",
+        "line": "deb https://enterprise.proxmox.com/debian/pbs bookworm pbs-enterprise",
+        "state": "absent",
+      }
+    - {
+        "filename": "pbs-enterprise",
+        "line": "deb https://enterprise.proxmox.com/debian/pbs bullseye pbs-enterprise",
+        "state": "absent",
+      }
+
+- name: upgrade proxmox backup server
+  ansible.builtin.apt:
+    update_cache: yes
+    upgrade: dist
+
+- name: reboot server
+  ansible.builtin.reboot:
+
+- name: check services
+  ansible.builtin.service:
+    name: "{{ item }}"
+    state: started
+  loop:
+    - proxmox-backup-proxy.service
+    - proxmox-backup.service
+
+- name: put datastores back in write mode
+  ansible.builtin.command:
+    cmd: proxmox-backup-manager datastore update "{{ (datastores.stdout | from_json | first).name }}" --delete maintenance-mode
