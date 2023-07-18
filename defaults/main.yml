@@ -1,0 +1,4 @@
+---
+# should the server be rebooted automatically
+# true or false
+reboot: false

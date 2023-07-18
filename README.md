@@ -22,8 +22,9 @@ This is a work in progress, there is still work to do and some comfort functions
   
 ## TODO
 - [ ] Documentation
-- [ ] put data storages in list and iterate them
-- [ ] check if PBS Version 2.x is high enough for upgrade
+- [x] put data storages in list and iterate them
+- [x] check if PBS Version 2.x is high enough for upgrade
+- [ ] list files to edit after upgrade find /etc -name "*.dpkg-dist"
 
 ## Author
 

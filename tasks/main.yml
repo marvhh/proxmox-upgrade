@@ -1,19 +1,33 @@
 ---
-- name: set diskspace fact
-  set_fact:
-    space_free_gb: "{{ (((ansible_mounts| selectattr('mount', 'equalto', '/')| list)[0].size_available)/1024/1024/1024) | round | int }}"
-
-- name: update all packages before upgrade
-  ansible.builtin.apt:
-    name: "*"
-    state: latest
-    update_cache: yes
-
+# get basic info and set facts
 - name: get proxmox backup server version
   ansible.builtin.command:
     cmd: proxmox-backup-manager versions
   register: pbs_version_info
+  changed_when: false
 
+- name: define proxmox backup server version
+  set_fact:
+    pbs_version: "{{ pbs_version_info.stdout | regex_search('running version\\:\\s(\\d+\\.\\d+.\\d+)') | split | last }}"
+    
+- name: define free disc space
+  set_fact:
+    space_free_gb: "{{ (((ansible_mounts| selectattr('mount', 'equalto', '/')| list)[0].size_available)/1024/1024/1024) | round | int }}"
+
+# check prerequisites
+- name: check that there is enough free space
+  ansible.builtin.fail:
+    msg: Stopping because there is not enough free space! There should be at least 5GB free of space.
+  when: space_free_gb > '5'
+
+- name: update packages to make sure we are at version 2.4.2 or higher
+  ansible.builtin.apt:
+    name: "*"
+    state: latest
+    update_cache: yes
+  when: pbs_version <= "2.4.2"
+
+# backup configuration
 - name: create backup of configuration
   community.general.archive:
     path: /etc/proxmox-backup
@@ -21,29 +35,29 @@
     mode: 600
     format: gz
 
-- name: check that there is enough free space
-  ansible.builtin.fail:
-    msg: Stopping because there is not enough free space! There should be at least 5GB free of space.
-  when: space_free_gb > '5'
-
-#
-# TODO Datastore maintenance mode
-#
-# currently only one datastore is checked, we need to loop over all.
-- name: get datastores
+# put datastores in maintenance mode
+- name: get datastore infos
   ansible.builtin.command:
     cmd: proxmox-backup-manager datastore list --output-format json
-  register: datastores
+  register: datastores_info
+  changed_when: false
+
+- name: define datastores
+  ansible.builtin.set_fact:
+    datastores: "{{ datastores_info.stdout | from_json }}"
 
 - name: put datastores in readonly mode
   ansible.builtin.command:
-    cmd: proxmox-backup-manager datastore update "{{ (datastores.stdout | from_json | first).name }}" --maintenance-mode read-only
+    cmd: proxmox-backup-manager datastore update "{{ item |json_query('name') }}" --maintenance-mode read-only
+  loop: "{{ datastores }}"
+  register: maintenance_output
+  changed_when: maintenance_output.rc != 0
 
+# upgrade proxmox backup server
 - name: set new sources.list
   ansible.builtin.apt_repository:
     repo: "{{ item.line }}"
     state: "{{ item.state }}"
-
     update_cache: false
   loop:
     - {
@@ -102,9 +116,12 @@
     update_cache: yes
     upgrade: dist
 
+# reboot server
 - name: reboot server
   ansible.builtin.reboot:
+  when: reboot
 
+# check if needed services are running
 - name: check services
   ansible.builtin.service:
     name: "{{ item }}"
@@ -113,6 +130,10 @@
     - proxmox-backup-proxy.service
     - proxmox-backup.service
 
+# reactivate datastores
 - name: put datastores back in write mode
   ansible.builtin.command:
-    cmd: proxmox-backup-manager datastore update "{{ (datastores.stdout | from_json | first).name }}" --delete maintenance-mode
+    cmd: proxmox-backup-manager datastore update "{{ item |json_query('name') }}" --delete maintenance-mode
+  loop: "{{ datastores }}"
+  register: maintenance_output
+  changed_when: maintenance_output.rc != 0
