@@ -1,0 +1,12 @@
+---
+# reboot server
+- name: reboot server
+  ansible.builtin.reboot:
+  when: reboot
+
+# check if needed services are running
+- name: check proxmox-backup-services
+  ansible.builtin.service:
+    name: "{{ item }}"
+    state: started
+  loop: "{{ proxmox_backup_services }}"

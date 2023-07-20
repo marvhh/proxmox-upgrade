@@ -1,0 +1,46 @@
+---
+# update debian repos
+- name: set new debian sources
+  ansible.builtin.apt_repository:
+    repo: "{{ item.line }}"
+    state: "{{ item.state }}"
+    update_cache: false
+  loop: "{{ __deb_debian_repos }}"
+
+# update proxmox pve repos
+- name: update proxmox pve repos
+  block:
+    - name: set new proxmov pve no-subscription repos
+      ansible.builtin.apt_repository:
+        repo: "{{ item.line }}"
+        state: "{{ item.state }}"
+        update_cache: false
+      loop: "{{ __deb_proxmox_pve_repos }}"
+
+    - name: set new proxmov pve subscription repos
+      ansible.builtin.apt_repository:
+        repo: "{{ item.line }}"
+        state: "{{ item.state }}"
+        update_cache: false
+      loop: "{{ __deb_proxmox_pve_ent_repos }}"
+      when: use_enterprise_repos
+  when: is_pve_role
+
+# update proxmox pbs repos
+- name: update proxmox pbs repos
+  block:
+  - name: set new proxmov pbs no-subscription repos
+    ansible.builtin.apt_repository:
+      repo: "{{ item.line }}"
+      state: "{{ item.state }}"
+      update_cache: false
+    loop: "{{ __deb_proxmox_pbs_repos }}"
+
+  - name: set new proxmov pbs subscription repos
+    ansible.builtin.apt_repository:
+      repo: "{{ item.line }}"
+      state: "{{ item.state }}"
+      update_cache: false
+    loop: "{{ __deb_proxmox_pbs_ent_repos }}"
+    when: use_enterprise_repos
+  when: is_pbs_role

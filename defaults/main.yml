@@ -1,4 +1,31 @@
 ---
-# should the server be rebooted automatically
-# true or false
+# should the server be rebooted automatically (boolean)
 reboot: false
+
+# should the server be rebooted automatically (boolean)
+shutdown_vms: true
+
+# should the enterpise repos be used? (boolean)
+use_enterprise_repos: false
+
+# proxmox pathes
+proxmox_pveversion: "/usr/bin/pveversion"
+proxmox_backup_manager: "/usr/sbin/proxmox-backup-manager"
+proxmox_qm_manager: "/usr/sbin/qm"
+proxmox_pve_min_version: "7.4-15"
+proxmox_pbs_min_version: "2.4.2"
+proxmox_get_vms_cmd: "qm list |grep running |awk '{print $1}'"
+proxmox_shutdown_vms_opts: "--forceStop 1"
+
+# proxmox services
+proxmox_backup_services:
+    - proxmox-backup-proxy.service
+    - proxmox-backup.service
+
+# define proxmox newest version
+proxmox_newest_deb_relase: "bookworm"
+
+# identify roles
+# do not change this!
+is_pve_role: false
+is_pbs_role: false

@@ -1,0 +1,15 @@
+galaxy_info:
+  author: Marvin Stark
+  description: automate Proxmox upgrade process
+  license: MIT
+  min_ansible_version: 2.14
+  platforms:
+    - name: Debian
+      versions:
+        - 11
+
+  galaxy_tags:
+    - proxmox
+    - debian
+    - dist-upgrade
+    - role

@@ -1,139 +1,28 @@
 ---
-# get basic info and set facts
-- name: get proxmox backup server version
-  ansible.builtin.command:
-    cmd: proxmox-backup-manager versions
-  register: pbs_version_info
-  changed_when: false
-
-- name: define proxmox backup server version
-  set_fact:
-    pbs_version: "{{ pbs_version_info.stdout | regex_search('running version\\:\\s(\\d+\\.\\d+.\\d+)') | split | last }}"
-    
-- name: define free disc space
-  set_fact:
-    space_free_gb: "{{ (((ansible_mounts| selectattr('mount', 'equalto', '/')| list)[0].size_available)/1024/1024/1024) | round | int }}"
-
-# check prerequisites
-- name: check that there is enough free space
+- name: stop when system is already on newest version
   ansible.builtin.fail:
-    msg: Stopping because there is not enough free space! There should be at least 5GB free of space.
-  when: space_free_gb > '5'
+    msg: "Server is already on newest version, stopping here!"
+  when: ansible_distribution_release == proxmox_newest_deb_relase
 
-- name: update packages to make sure we are at version 2.4.2 or higher
-  ansible.builtin.apt:
-    name: "*"
-    state: latest
-    update_cache: yes
-  when: pbs_version <= "2.4.2"
+- name: include OS specific variables
+  ansible.builtin.include_vars: "{{ lookup('ansible.builtin.first_found', params) }}"
+  vars:
+    params:
+      files:
+        - "{{ ansible_distribution }}-{{ ansible_distribution_version}}.yml"
+      paths:
+        - "vars"
 
-# backup configuration
-- name: create backup of configuration
-  community.general.archive:
-    path: /etc/proxmox-backup
-    dest: /var/backups/proxmox-backup-{{ ansible_date_time.date }}.tar.gz
-    mode: 600
-    format: gz
+- name: gather facts and check prerequisites
+  ansible.builtin.include_tasks:
+    file: prepare.yml
 
-# put datastores in maintenance mode
-- name: get datastore infos
-  ansible.builtin.command:
-    cmd: proxmox-backup-manager datastore list --output-format json
-  register: datastores_info
-  changed_when: false
+- name: perform tasks for Proxmox Backup Server
+  ansible.builtin.include_tasks:
+    file: upgrade-pbs.yml
+  when: is_pbs_role
 
-- name: define datastores
-  ansible.builtin.set_fact:
-    datastores: "{{ datastores_info.stdout | from_json }}"
-
-- name: put datastores in readonly mode
-  ansible.builtin.command:
-    cmd: proxmox-backup-manager datastore update "{{ item |json_query('name') }}" --maintenance-mode read-only
-  loop: "{{ datastores }}"
-  register: maintenance_output
-  changed_when: maintenance_output.rc != 0
-
-# upgrade proxmox backup server
-- name: set new sources.list
-  ansible.builtin.apt_repository:
-    repo: "{{ item.line }}"
-    state: "{{ item.state }}"
-    update_cache: false
-  loop:
-    - {
-        "line": "deb http://ftp.de.debian.org/debian bookworm main contrib",
-        "state": "present",
-      }
-    - {
-        "line": "deb http://ftp.de.debian.org/debian bookworm-updates main contrib",
-        "state": "present",
-      }
-    - {
-        "line": "deb http://security.debian.org bookworm-security main contrib",
-        "state": "present",
-      }
-    - {
-        "line": "deb http://download.proxmox.com/debian/pbs bookworm pbs-no-subscription",
-        "state": "present",
-      }
-    - {
-        "line": "deb http://ftp.de.debian.org/debian bullseye main contrib",
-        "state": "absent",
-      }
-    - {
-        "line": "deb http://ftp.de.debian.org/debian bullseye-updates main contrib",
-        "state": "absent",
-      }
-    - {
-        "line": "deb http://security.debian.org bullseye-security main contrib",
-        "state": "absent",
-      }
-    - {
-        "line": "deb http://download.proxmox.com/debian/pbs bullseye pbs-no-subscription",
-        "state": "absent",
-      }
-
-- name: set new pbs-enterprise sources, as i dont use them delete them.
-  ansible.builtin.apt_repository:
-    repo: "{{ item.line }}"
-    state: "{{ item.state }}"
-    filename: "{{ item.filename }}"
-    update_cache: false
-  loop:
-    - {
-        "filename": "pbs-enterprise",
-        "line": "deb https://enterprise.proxmox.com/debian/pbs bookworm pbs-enterprise",
-        "state": "absent",
-      }
-    - {
-        "filename": "pbs-enterprise",
-        "line": "deb https://enterprise.proxmox.com/debian/pbs bullseye pbs-enterprise",
-        "state": "absent",
-      }
-
-- name: upgrade proxmox backup server
-  ansible.builtin.apt:
-    update_cache: yes
-    upgrade: dist
-
-# reboot server
-- name: reboot server
-  ansible.builtin.reboot:
-  when: reboot
-
-# check if needed services are running
-- name: check services
-  ansible.builtin.service:
-    name: "{{ item }}"
-    state: started
-  loop:
-    - proxmox-backup-proxy.service
-    - proxmox-backup.service
-
-# reactivate datastores
-- name: put datastores back in write mode
-  ansible.builtin.command:
-    cmd: proxmox-backup-manager datastore update "{{ item |json_query('name') }}" --delete maintenance-mode
-  loop: "{{ datastores }}"
-  register: maintenance_output
-  changed_when: maintenance_output.rc != 0
+- name: perform tasks for Proxmox Virtual Environment Server
+  ansible.builtin.include_tasks:
+    file: upgrade-pve.yml
+  when: is_pve_role

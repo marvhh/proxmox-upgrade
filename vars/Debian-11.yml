@@ -1,0 +1,69 @@
+---
+# when Debian 11 (bullseye) is detected, change repos to Debian 12 (bookworm)
+__deb_debian_repos:
+  - {
+      "line": "deb http://ftp.de.debian.org/debian bookworm main contrib",
+      "state": "present",
+    }
+  - {
+    "line": "deb http://ftp.de.debian.org/debian bookworm-updates main contrib",
+    "state": "present",
+  }
+  - {
+    "line": "deb http://security.debian.org bookworm-security main contrib",
+    "state": "present",
+  }
+  - {
+    "line": "deb http://ftp.de.debian.org/debian bullseye main contrib",
+    "state": "absent",
+  }
+  - {
+    "line": "deb http://ftp.de.debian.org/debian bullseye-updates main contrib",
+    "state": "absent",
+  }
+  - {
+    "line": "deb http://security.debian.org bullseye-security main contrib",
+    "state": "absent",
+  }
+
+__deb_proxmox_pve_repos:
+  - {
+    "line": "deb http://download.proxmox.com/debian/pve bookworm pve-no-subscription",
+    "state": "present",
+  }
+  - {
+    "line": "deb http://download.proxmox.com/debian/pve bullseye pve-no-subscription",
+    "state": "absent",
+  }
+
+__deb_proxmox_pve_ent_repos:
+  - {
+    "line": "deb https://enterprise.proxmox.com/debian/pve bookworm pve-enterprise",
+    "state": "present",
+  }
+  - {
+    "line": "deb https://enterprise.proxmox.com/debian/pve bullseye pve-enterprise",
+    "state": "absent",
+  }
+
+__deb_proxmox_pbs_repos:
+  - {
+    "line": "deb http://download.proxmox.com/debian/pbs bookworm pbs-no-subscription",
+    "state": "present",
+  }
+  - {
+    "line": "deb http://download.proxmox.com/debian/pbs bullseye pbs-no-subscription",
+    "state": "absent",
+  }
+
+__deb_proxmox_pbs_ent_repos:
+  - {
+    "filename": "pbs-enterprise",
+    "line": "deb https://enterprise.proxmox.com/debian/pbs bookworm pbs-enterprise",
+    "state": "absent",
+  }
+  - {
+    "filename": "pbs-enterprise",
+    "line": "deb https://enterprise.proxmox.com/debian/pbs bullseye pbs-enterprise",
+    "state": "absent",
+  }

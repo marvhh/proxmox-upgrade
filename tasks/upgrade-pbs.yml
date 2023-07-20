@@ -1,0 +1,67 @@
+---
+- name: perform tasks for Proxmox Backup Server
+  block:
+    - name: get Proxmox Backup Server version
+      ansible.builtin.command:
+        cmd: proxmox-backup-manager versions
+      register: proxmox_pbs_version_info
+      changed_when: false
+
+    - name: define Proxmox Backup Server version
+      ansible.builtin.set_fact:
+        proxmox_pbs_version: "{{ proxmox_pbs_version_info.stdout | regex_search('running version\\:\\s(\\d+\\.\\d+.\\d+)') | split | last }}"
+
+    - name: update packages to make sure we are at version "{{ proxmox_pbs_min_version }}" or higher
+      ansible.builtin.apt:
+        name: "*"
+        state: latest
+        update_cache: yes
+      when: proxmox_pbs_version <= proxmox_pbs_min_version
+
+    # backup configuration
+    - name: create backup of configuration
+      community.general.archive:
+        path: /etc/proxmox-backup
+        dest: /var/backups/proxmox-backup-{{ ansible_date_time.date }}.tar.gz
+        mode: 600
+        format: gz
+
+    # put datastores in maintenance mode
+    - name: get datastore infos
+      ansible.builtin.command:
+        cmd: proxmox-backup-manager datastore list --output-format json
+      register: datastores_info
+      changed_when: false
+
+    - name: define datastores
+      ansible.builtin.set_fact:
+        datastores: "{{ datastores_info.stdout | from_json }}"
+
+    - name: put datastores in readonly mode
+      ansible.builtin.command:
+        cmd: proxmox-backup-manager datastore update "{{ item |json_query('name') }}" --maintenance-mode read-only
+      loop: "{{ datastores }}"
+      register: maintenance_output
+      changed_when: maintenance_output.rc != 0
+
+    # update repos
+    - name: update repos
+      ansible.builtin.include_tasks:
+        file: update-repos.yml
+
+    # do dist-upgrade
+    - name: upgrade Proxmox Backup Server
+      ansible.builtin.apt:
+        update_cache: yes
+        upgrade: dist
+
+    # reactivate datastores
+    - name: put datastores back in write mode
+      ansible.builtin.command:
+        cmd: proxmox-backup-manager datastore update "{{ item |json_query('name') }}" --delete maintenance-mode
+      loop: "{{ datastores }}"
+      register: maintenance_output
+      changed_when: maintenance_output.rc != 0
+  notify:
+    - reboot server
+    - check proxmox-backup-services

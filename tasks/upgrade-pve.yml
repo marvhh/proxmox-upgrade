@@ -1,0 +1,54 @@
+---
+- name: perform tasks for Proxmox Virtual Environment
+  block:
+    - name: get Proxmox Virtual Environment version
+      ansible.builtin.command:
+        cmd: "{{ proxmox_pveversion }}"
+      register: proxmox_pveversion_info
+      changed_when: false
+
+    - name: define Proxmox Virtual Environment version
+      ansible.builtin.set_fact:
+        proxmox_pve_version: "{{ proxmox_pveversion_info.stdout | regex_search('pve-manager\/(\\d+\\.\\d+-\\d+)') | split('/') | last }}"
+
+    - name: update packages to make sure we are at version "{{ proxmox_pve_min_version }}" or higher
+      ansible.builtin.apt:
+        name: "*"
+        state: latest
+        update_cache: yes
+      when: proxmox_pve_version <= proxmox_pve_min_version
+
+    # backup configuration
+    - name: create backup of configuration
+      community.general.archive:
+        path: /etc
+        dest: /var/backups/proxmox-pve-backup-{{ ansible_date_time.date }}.tar.gz
+        mode: 600
+        format: gz
+
+    # shutdown virtual maschines
+    - name: get running virtual maschines
+      ansible.builtin.shell:
+        cmd: "{{ proxmox_get_vms_cmd }}"
+      register: proxmox_running_vms_info
+      changed_when: false
+
+    - name: shutting down virtual maschines
+      ansible.builtin.command:
+        cmd: "{{ proxmox_qm_manager }} shutdown {{ item }} {{ proxmox_shutdown_vms_opts }}"
+      loop: "{{ proxmox_running_vms_info.stdout_lines }}"
+      when: shutdown_vms
+
+    # update repos
+    - name: update repos
+      ansible.builtin.include_tasks:
+        file: update-repos.yml
+
+    # do dist-upgrade
+    - name: upgrade Proxmox Virtual Environment Server
+      ansible.builtin.apt:
+        update_cache: yes
+        upgrade: dist
+
+  notify:
+    - reboot server

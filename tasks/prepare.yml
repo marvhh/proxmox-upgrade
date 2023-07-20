@@ -1,0 +1,31 @@
+---
+# get basic info and set facts
+- name: check if proxmox pve role is installed
+  ansible.builtin.stat:
+    path: "{{ proxmox_pveversion }}"
+  register: pve_version_info
+
+- name: check if proxmox-backup-manager role is installed
+  ansible.builtin.stat:
+    path: "{{ proxmox_backup_manager }}"
+  register: pbs_manager_info
+
+- name: define server as pve role
+  ansible.builtin.set_fact:
+    is_pve_role: true
+  when: pve_version_info.stat.exists
+
+- name: define as pbs role
+  ansible.builtin.set_fact:
+    is_pbs_role: true
+  when: pbs_manager_info.stat.exists
+
+# check that there is enough free disc space
+- name: define free disc space
+  set_fact:
+    space_free_gb: "{{ (((ansible_mounts| selectattr('mount', 'equalto', '/')| list)[0].size_available)/1024/1024/1024) | round | int }}"
+
+- name: check that there is enough free space
+  ansible.builtin.fail:
+    msg: Stopping because there is not enough free space! There should be at least 5GB free of space.
+  when: space_free_gb > '5'
