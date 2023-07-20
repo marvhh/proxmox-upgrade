@@ -9,7 +9,7 @@
   vars:
     params:
       files:
-        - "{{ ansible_distribution }}-{{ ansible_distribution_version}}.yml"
+        - "{{ ansible_distribution }}-{{ ansible_distribution_version }}.yml"
       paths:
         - "vars"
 

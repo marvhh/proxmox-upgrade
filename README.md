@@ -35,9 +35,11 @@ You should also use it after the upgrade to verify that everything is ok.
 
 ## playbook usage
 
-  1. Clone this repository to your local drive.
-  2. include it in your roles folder
-  3. create a playbook yaml file
+  1. install this playbook via Ansible Galaxy
+  ```
+  ansible-galaxy install marvhh.proxmox_upgrade
+  ```
+  2. create a playbook yaml file
 
 example:
 ```yaml
@@ -46,7 +48,7 @@ example:
   hosts: proxmox_server
 
   roles:
-    - proxmox-upgrade
+    - marvhh.proxmox_upgrade
 ```
   4. run ansible-playbook 
 

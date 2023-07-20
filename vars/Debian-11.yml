@@ -2,9 +2,9 @@
 # when Debian 11 (bullseye) is detected, change repos to Debian 12 (bookworm)
 __deb_debian_repos:
   - {
-      "line": "deb http://ftp.de.debian.org/debian bookworm main contrib",
-      "state": "present",
-    }
+    "line": "deb http://ftp.de.debian.org/debian bookworm main contrib",
+    "state": "present",
+  }
   - {
     "line": "deb http://ftp.de.debian.org/debian bookworm-updates main contrib",
     "state": "present",
