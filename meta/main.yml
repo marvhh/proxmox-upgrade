@@ -6,7 +6,7 @@ galaxy_info:
   platforms:
     - name: Debian
       versions:
-        - 11
+        - bullseye
 
   galaxy_tags:
     - proxmox
