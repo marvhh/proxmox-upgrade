@@ -16,7 +16,7 @@
 - name: download backups from server
   ansible.builtin.fetch:
     src: "{{ item }}"
-    dest: "{{ role_path}}/backups/{{ inventory_hostname }}"
+    dest: "{{ role_path }}/backups/{{ inventory_hostname }}"
   loop: "{{ backup_files }}"
   tags:
     - backup
