@@ -1,0 +1,22 @@
+---
+- name: collect files to backup
+  ansible.builtin.find:
+    paths: "{{ backup_path }}"
+    patterns: 'proxmox-*-backup-*.tar.gz'
+  register: backup_files_info
+  tags:
+    - backup
+
+- name: define backup files
+  ansible.builtin.set_fact:
+    backup_files: "{{ backup_files_info.files | selectattr('path', 'defined') | map(attribute='path') }}"
+  tags:
+    - backup
+
+- name: download backups from server
+  ansible.builtin.fetch:
+    src: "{{ item }}"
+    dest: "{{ role_path}}/backups/{{ inventory_hostname }}"
+  loop: "{{ backup_files }}"
+  tags:
+    - backup

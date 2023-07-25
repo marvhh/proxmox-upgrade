@@ -3,56 +3,68 @@
 __deb_debian_repos:
   - {
     "line": "deb http://ftp.de.debian.org/debian bookworm main contrib",
+    "release": "bookworm",
     "state": "present",
-  }
+    }
   - {
     "line": "deb http://ftp.de.debian.org/debian bookworm-updates main contrib",
+    "release": "bookworm",
     "state": "present",
   }
   - {
     "line": "deb http://security.debian.org bookworm-security main contrib",
+    "release": "bookworm",
     "state": "present",
   }
   - {
     "line": "deb http://ftp.de.debian.org/debian bullseye main contrib",
+    "release": "bullseye",
     "state": "absent",
   }
   - {
     "line": "deb http://ftp.de.debian.org/debian bullseye-updates main contrib",
+    "release": "bullseye",
     "state": "absent",
   }
   - {
     "line": "deb http://security.debian.org bullseye-security main contrib",
+    "release": "bullseye",
     "state": "absent",
   }
 
 __deb_proxmox_pve_repos:
   - {
     "line": "deb http://download.proxmox.com/debian/pve bookworm pve-no-subscription",
+    "release": "bookworm",
     "state": "present",
   }
   - {
     "line": "deb http://download.proxmox.com/debian/pve bullseye pve-no-subscription",
+    "release": "bullseye",
     "state": "absent",
   }
 
 __deb_proxmox_pve_ent_repos:
   - {
     "line": "deb https://enterprise.proxmox.com/debian/pve bookworm pve-enterprise",
+    "release": "bookworm",
     "state": "present",
   }
   - {
     "line": "deb https://enterprise.proxmox.com/debian/pve bullseye pve-enterprise",
+    "release": "bullseye",
     "state": "absent",
   }
 
 __deb_proxmox_pbs_repos:
   - {
     "line": "deb http://download.proxmox.com/debian/pbs bookworm pbs-no-subscription",
+    "release": "bookworm",
     "state": "present",
   }
   - {
     "line": "deb http://download.proxmox.com/debian/pbs bullseye pbs-no-subscription",
+    "release": "bullseye",
     "state": "absent",
   }
 
@@ -60,10 +72,12 @@ __deb_proxmox_pbs_ent_repos:
   - {
     "filename": "pbs-enterprise",
     "line": "deb https://enterprise.proxmox.com/debian/pbs bookworm pbs-enterprise",
+    "release": "bookworm",
     "state": "absent",
   }
   - {
     "filename": "pbs-enterprise",
     "line": "deb https://enterprise.proxmox.com/debian/pbs bullseye pbs-enterprise",
+    "release": "bullseye",
     "state": "absent",
   }

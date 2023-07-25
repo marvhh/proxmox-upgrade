@@ -9,20 +9,35 @@
   vars:
     params:
       files:
-        - "{{ ansible_distribution }}-{{ ansible_distribution_version }}.yml"
+        - "{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml"
       paths:
         - "vars"
+  tags:
+    - always
 
 - name: gather facts and check prerequisites
   ansible.builtin.include_tasks:
     file: prepare.yml
+  tags:
+    - always
 
 - name: perform tasks for Proxmox Backup Server
   ansible.builtin.include_tasks:
     file: upgrade-pbs.yml
   when: is_pbs_role
+  tags:
+    - backup
 
 - name: perform tasks for Proxmox Virtual Environment Server
   ansible.builtin.include_tasks:
     file: upgrade-pve.yml
   when: is_pve_role
+  tags:
+    - backup
+
+- name: download backup files
+  ansible.builtin.include_tasks:
+    file: fetch-backups.yml
+  when: download_backups
+  tags:
+    - backup

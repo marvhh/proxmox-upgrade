@@ -4,21 +4,29 @@
   ansible.builtin.stat:
     path: "{{ proxmox_pveversion }}"
   register: pve_version_info
+  tags:
+    - backup
 
 - name: check if proxmox-backup-manager role is installed
   ansible.builtin.stat:
     path: "{{ proxmox_backup_manager }}"
   register: pbs_manager_info
+  tags:
+    - backup
 
 - name: define server as pve role
   ansible.builtin.set_fact:
     is_pve_role: true
   when: pve_version_info.stat.exists
+  tags:
+    - backup
 
 - name: define as pbs role
   ansible.builtin.set_fact:
     is_pbs_role: true
   when: pbs_manager_info.stat.exists
+  tags:
+    - backup
 
 # check that there is enough free disc space
 - name: define free disc space

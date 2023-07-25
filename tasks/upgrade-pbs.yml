@@ -1,6 +1,30 @@
 ---
 - name: perform tasks for Proxmox Backup Server
   block:
+    - name: remove pbs-enterprise subscription repo
+      ansible.builtin.file:
+        path: "{{ proxmox_pbs_enterprise_list }}"
+        state: absent
+      when: use_enterprise_repos == false
+
+    - name: make sure that pbs-no-subscription repos are active
+      ansible.builtin.apt_repository:
+        repo: "{{ item.line }}"
+        state: present
+        update_cache: false
+      loop: "{{ __deb_proxmox_pbs_repos | selectattr('release', '==', ansible_distribution_release) }}"
+
+    - name: update packages to make sure we are at version "{{ proxmox_pbs_min_version }}" or higher
+      ansible.builtin.apt:
+        name: "*"
+        state: latest
+        update_cache: yes
+      notify:
+        - reboot server
+
+    - name: flush handlers to reboot instantly
+      ansible.builtin.meta: flush_handlers
+
     - name: get Proxmox Backup Server version
       ansible.builtin.command:
         cmd: proxmox-backup-manager versions
@@ -11,20 +35,20 @@
       ansible.builtin.set_fact:
         proxmox_pbs_version: "{{ proxmox_pbs_version_info.stdout | regex_search('running version\\:\\s(\\d+\\.\\d+.\\d+)') | split | last }}"
 
-    - name: update packages to make sure we are at version "{{ proxmox_pbs_min_version }}" or higher
-      ansible.builtin.apt:
-        name: "*"
-        state: latest
-        update_cache: yes
+    - name: fail when Proxmox Backup Server version is not met
+      ansible.builtin.fail:
+        msg: "Proxmox Backup Server version too low, at least {{ proxmox_pbs_min_version }} is needed."
       when: proxmox_pbs_version <= proxmox_pbs_min_version
 
     # backup configuration
     - name: create backup of configuration
       community.general.archive:
         path: /etc/proxmox-backup
-        dest: /var/backups/proxmox-backup-{{ ansible_date_time.date }}.tar.gz
+        dest: "{{ backup_path }}proxmox-pbs-backup-{{ ansible_date_time.date }}.tar.gz"
         mode: 600
         format: gz
+      tags:
+        - backup
 
     # put datastores in maintenance mode
     - name: get datastore infos

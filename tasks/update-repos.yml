@@ -29,14 +29,14 @@
 # update proxmox pbs repos
 - name: update proxmox pbs repos
   block:
-    - name: set new proxmov pbs no-subscription repos
+    - name: set new proxmox pbs no-subscription repos
       ansible.builtin.apt_repository:
         repo: "{{ item.line }}"
         state: "{{ item.state }}"
         update_cache: false
       loop: "{{ __deb_proxmox_pbs_repos }}"
 
-    - name: set new proxmov pbs subscription repos
+    - name: set new proxmox pbs subscription repos
       ansible.builtin.apt_repository:
         repo: "{{ item.line }}"
         state: "{{ item.state }}"

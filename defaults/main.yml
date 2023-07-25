@@ -1,12 +1,18 @@
 ---
 # should the server be rebooted automatically (boolean)
-reboot: false
+reboot: true
 
 # should the server be rebooted automatically (boolean)
 shutdown_vms: true
 
 # should the enterpise repos be used? (boolean)
 use_enterprise_repos: false
+
+# download created backups? (boolean)
+download_backups: true
+
+# where to save backups?
+backup_path: "/var/backups"
 
 # proxmox pathes
 proxmox_pveversion: "/usr/bin/pveversion"
@@ -16,6 +22,8 @@ proxmox_pve_min_version: "7.4-15"
 proxmox_pbs_min_version: "2.4.2"
 proxmox_get_vms_cmd: "qm list |grep running |awk '{print $1}'"
 proxmox_shutdown_vms_opts: "--forceStop 1"
+proxmox_pve_enterprise_list: "/etc/apt/sources.list.d/pve-enterprise.list"
+proxmox_pbs_enterprise_list: "/etc/apt/sources.list.d/pbs-enterprise.list"
 
 # proxmox services
 proxmox_backup_services:
