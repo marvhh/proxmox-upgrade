@@ -59,13 +59,6 @@ Following [options](defaults/main.yml) are currently supported:
 * `shutdown_vms`: shutdown virtual maschines automatically
 * `use_enterprise_repos`: should the [Proxmox enterprise repositories](https://pve.proxmox.com/wiki/Package_Repositories) be used?
 
-## TODO
-
-- [x] Documentation
-- [x] put data storages in list and iterate them
-- [x] check if PBS Version 2.x is high enough for upgrade
-- [ ] list files to edit after upgrade find /etc -name "*.dpkg-dist"
-
 ## Author
 
 [Marvin Stark](https://github.com/marvhh)

@@ -1,0 +1,12 @@
+---
+  - name: find config files changed by package maintainer
+    ansible.builtin.find:
+      path: /etc
+      patterns: '*.dpkg-dist'
+      recurse: yes
+    register: dpkg_dist_files
+
+  - name: please check following new configuration files and apply your changes, files could be deleted after that.
+    ansible.builtin.debug:
+      msg: "{{ dpkg_dist_files.files | map(attribute='path') }}"
+    when: dpkg_dist_files.matched > 0

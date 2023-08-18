@@ -41,3 +41,9 @@
   when: download_backups
   tags:
     - backup
+
+- name: check configuration file changes
+  ansible.builtin.include_tasks:
+    file: check-new-configs.yml
+  tags:
+    - always
